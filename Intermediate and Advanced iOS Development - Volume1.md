@@ -1,6 +1,51 @@
 ## Intermediate and Advanced iOS Development - Volume1
 
 
+### 5. Speed Up Xcode Previews with MockHTTPClient in SwiftUI
+
+```swift
+// 아래 프로토콜을 실제 Client, mock Client에서 채택해서 사용
+protocol HTTPClientProtocol {
+    func load<T: Codable>(_ resource: Resource<T>) async throws -> T
+}
+
+enum HTTPMethod {
+    case get([URLQueryItem])
+    case post(Data?)
+    case delete
+    case put(Data?)
+
+    var name: String {
+        switch self {
+        case .get:
+            return "GET"
+        case .post:
+            return "POST"
+        case .delete:
+            return "DELETE"
+        case .put:
+            return "PUT"
+        }
+    }
+}
+
+struct Resource<T: Codable> {
+    let url: URL
+    var method: HTTPMethod = .get([])
+    var headers: [String: String]? = nil
+    var modelType: T.Type
+}
+
+// MockHTTPClient를 사용해서 Preview 활용 가능
+#Preview {
+    NavigationStack {
+        CategoryListScreen()
+    }
+    .environment(PlatziStore(httpClient: MockHTTPClient()))
+}
+```
+
+
 
 ### 4. Managing Loading States in SwiftUI App
 
