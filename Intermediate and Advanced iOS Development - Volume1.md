@@ -1,5 +1,163 @@
 ## Intermediate and Advanced iOS Development - Volume1
 
+### 7. Build a Modern Onboarding Flow in SwiftUI with Enums and Data Binding
+
+- SwiftUI 기반의 Onboarding flow 구현하기
+
+```swift
+import SwiftUI
+
+// 온보딩의 모든 단계를 정의
+enum OnboardingStep: Int, CaseIterable, Identifiable {
+    case graduation
+    case income
+    case expenses
+    case review
+
+    var id: Int { rawValue }
+}
+
+struct Onboarding {
+    var graduation = Graduation()
+    var income = Income()
+    var expense = Expense()
+
+    struct Graduation {
+        var graduated: Bool = false
+    }
+
+    struct Income {
+        var total: Double = 0.0
+    }
+
+    struct Expense {
+        var total: Double = 0.0
+    }
+}
+
+
+struct ReviewScreen: View {
+    let onboarding: Onboarding
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Review Your Information")
+                .font(.title2)
+                .bold()
+
+            Divider()
+
+            Group {
+                Text("🎓 Graduated: \(onboarding.graduation.graduated ? "Yes" : "No")")
+                Text("💰 Income: \(String(format: "$%.2f", onboarding.income.total))")
+                Text("💸 Expenses: \(String(format: "$%.2f", onboarding.expense.total))")
+            }
+            .font(.headline)
+
+            Spacer()
+        }
+        .padding()
+    }
+}
+
+struct GraduationView: View {
+    @Binding var graduation: Onboarding.Graduation
+
+    var body: some View {
+        Toggle("Graduated?", isOn: $graduation.graduated)
+            .padding()
+    }
+}
+
+struct IncomeView: View {
+    @Binding var income: Onboarding.Income
+
+    var body: some View {
+        VStack {
+            Text("Enter your total income:")
+            TextField("Income", value: $income.total, format: .number)
+                .keyboardType(.decimalPad)
+                .padding()
+        }
+    }
+}
+
+struct ExpensesView: View {
+    @Binding var expense: Onboarding.Expense
+
+    var body: some View {
+        VStack {
+            Text("Enter your total expenses:")
+            TextField("Expenses", value: $expense.total, format: .number)
+                .keyboardType(.decimalPad)
+                .padding()
+        }
+    }
+}
+
+struct OnboardingRootView: View {
+    /// @State 변수들은 하위 View의 @Binding 변수들과 데이터바인딩 가능
+    @State private var onboarding = Onboarding()
+    @State private var currentStepIndex = 0
+
+    var steps: [OnboardingStep] {
+        OnboardingStep.allCases
+    }
+
+    var body: some View {
+        VStack {
+            TabView(selection: $currentStepIndex) {
+                ForEach(steps) { step in
+                    stepView(for: step)
+                        .tag(step.id)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+
+
+            Button {
+                if currentStepIndex < steps.count - 1 {
+                    withAnimation {
+                        currentStepIndex += 1
+                    }
+                }
+            } label: {
+                Text(currentStepIndex == steps.count - 1 ? "Get started": "Next")
+            }
+            .buttonStyle(.borderedProminent)
+            .padding([.horizontal, .bottom])
+
+
+        }
+        .foregroundStyle(.white)
+        .background(.blue)
+    }
+
+    /// 각각의 온보딩 페이지에 데이터바인딩할 변수를 주입하면 View 생성
+    @ViewBuilder
+    private func stepView(for step: OnboardingStep) -> some View {
+        switch step {
+        case .graduation:
+            GraduationView(graduation: $onboarding.graduation)
+        case .income:
+            IncomeView(income: $onboarding.income)
+        case .expenses:
+            ExpensesView(expense: $onboarding.expense)
+        case .review:
+            // Review 페이지에서는 각 페이지에 데이터바인딩되어있는 데이터들을 전체적으로 보여줌 (읽기만 함)
+            ReviewScreen(onboarding: onboarding)
+        }
+    }
+}
+
+#Preview {
+    OnboardingRootView()
+}
+```
+
+
+
+### 6. Building the Car Price Prediction Model
 
 ### 5. Speed Up Xcode Previews with MockHTTPClient in SwiftUI
 
