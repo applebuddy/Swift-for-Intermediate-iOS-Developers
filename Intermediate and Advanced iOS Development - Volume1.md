@@ -1,9 +1,116 @@
 ## Intermediate and Advanced iOS Development - Volume1
 
+### 12. Build a Debounce View Modifier in SwiftUI Without Combine (Async/Await Approach)
+
+### 11. Fix Slow iOS Apps: Find Network Bottlenecks with Instruments + Caching
+
+### 10. How to Cache Images in Swift with NSCache and Async/Await
+
+- SwiftUI 에서 기본 제공하는 AsyncImage View는 자체 캐싱 기능이 없으므로, 캐싱이 필요하다면 별도 구현이 필요함
+- Caching 로직이 있는 ImageLoader 기반으로 동작하는 URLImage View 구현
+
+#### EnvironmentValues extension
+
+```swift
+import SwiftUI
+
+// @Entry Macro 활용해서 간단하게 EnvironmentValues 지정 가능
+extension EnvironmentValues {
+    @Entry var httpClient = HTTPClient()
+    @Entry var imageLoader = ImageLoader()
+}
+```
+
+#### URLImage View Implementation
+
+```swift
+import SwiftUI
+
+/// image url 요청 시, 캐싱 로직이 포함된 Image View
+struct URLImage: View {
+    private let url: URL?
+    @State private var image: UIImage?
+    @Environment(\.imageLoader) private var imageLoader
+
+    init(url: URL?, image: UIImage? = nil) {
+        self.url = url
+        self.image = image
+    }
+
+    var body: some View {
+        ZStack {
+            if let image {
+                Image(uiImage: image)
+                    .resizable() // Image는 resizable() 설정 후 frame 지정해야 크기가 변경 됨.
+            } else {
+                Image(systemName: "heart") // image가 없는 경우의 placeholder image 지정
+            }
+        }.task {
+            // View 노출 시 url 기반 image 요청.
+            // 한번 로드해서 캐싱했던 image는 재요청하지 않고 캐싱된 image 사용
+            image = try? await imageLoader.fetchImage(url)
+        }
+    }
+}
+
+#Preview {
+    URLImage(url: URL(string: "http://www.highoncoding.com/VegetableImages/carrots.png")!)
+}
+```
+
+#### ImageLoader Implementation
+
+```swift
+import UIKit
+
+struct ImageLoader {
+    let httpClient: HTTPClient
+    /// NSCache를 활용해서 Image 캐싱이 가능
+    /// - key : imag eurl string
+    /// - value : image to cache
+    private static let cache = NSCache<NSString, UIImage>()
+
+    init(httpClient: HTTPClient = HTTPClient()) {
+        self.httpClient = httpClient
+    }
+
+    func fetchImage(_ url: URL?) async throws -> UIImage? {
+        guard let url
+        else {
+            throw NetworkError.badUrl
+        }
+
+        // check in cache
+        if let cachedImage = Self.cache.object(forKey: url.absoluteString as NSString) {
+            // 캐시된 이미지가 있다면, 캐시한 이미지를 사용합니다.
+            return cachedImage
+        } else {
+            // fetch the image if there's no cached image
+            let resource = Resource(url: url, modelType: Data.self)
+            let data = try await httpClient.load(resource)
+
+            guard let image = UIImage(data: data)
+            else {
+                throw NetworkError.unsupportedImage
+            }
+
+            // store the image in the cache
+            Self.cache.setObject(image, forKey: url.absoluteString as NSString)
+            return image
+        }
+    }
+}
+```
+
+
+
 ### 9. How to implement infinite Scrolling in SwiftUI with Real API Data
 
 - Infinite Scrolling : 스크롤할때 추가적으로 계속 데이터를 불러서 리스트를 보여주는 것
 - environmentObject로 Store를 주입하는 방식으로 Screen 생성
+- View가 노출될 때에 특정 async method 호출 가능한 SwiftUI View task 블럭을 통해 Screen View List 노출 시, 이후 스크롤로 마지막 product 노출 시에 productList 로드
+  - 이미 요청한 마지막 product id라면, 더이상 로드하지 않음
+
 
 ```swift
 import SwiftUI
