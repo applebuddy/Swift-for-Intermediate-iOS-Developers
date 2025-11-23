@@ -1,5 +1,137 @@
 ## Intermediate and Advanced iOS Development - Volume1
 
+### 9. How to implement infinite Scrolling in SwiftUI with Real API Data
+
+- Infinite Scrolling : 스크롤할때 추가적으로 계속 데이터를 불러서 리스트를 보여주는 것
+- environmentObject로 Store를 주입하는 방식으로 Screen 생성
+
+```swift
+import SwiftUI
+
+@main
+struct PlatziAppApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ProductListScreen()
+                .environment(PlatziStore(httpClient: HTTPClient()))
+        }
+    }
+}
+```
+
+- ProductListScreen List 노출 시 최초 products load, 이후 스크롤로 마지막 product 도달 시마다 추가 로드
+
+```swift
+import Foundation
+import Observation
+
+// PlatziStore를 environmentObject로 주입해서 API 요청에 사용
+
+/// 서버로부터 받은 데이터가 디코딩될 DTO 모델
+struct Product: Codable, Identifiable {
+    let id: Int
+    let title: String
+    let price: Double
+    let description: String
+    let images: [String]
+}
+
+struct Constants {
+    struct Urls {
+        static func products(page: Int = 0, limit: Int = 10) -> URL {
+            URL(string: "https://island-bramble.glitch.me/api/products?page=\(page)&limit=\(limit)")!
+        }
+    }
+}
+
+@MainActor
+@Observable
+class PlatziStore {
+    let httpClient: HTTPClient
+    var products: [Product] = []
+
+    init(httpClient: HTTPClient) {
+        self.httpClient = httpClient
+    }
+
+    func loadProducts(page: Int = 0, limit: Int = 10) async throws {
+
+        // 요청에 필요한 url, query, responseType를 Resource로 정의 후 요청
+        let resource = Resource(url: Constants.Urls.products(page: page, limit: limit), modelType: [Product].self)
+        let newProducts = try await httpClient.load(resource)
+        
+        print(resource.url)
+        
+        // prevent duplicates based on product id
+
+        products.append(contentsOf: newProducts)
+    }
+}
+```
+
+```swift
+import SwiftUI
+
+struct ProductListScreen: View {
+
+    @Environment(PlatziStore.self) private var platziStore
+    @State private var currentPage: Int = 1
+    @State private var limit: Int = 10
+    @State private var lastLoadedProductId: Int?
+
+    private func loadMoreIfNeeded(currentProduct: Product) async {
+        // 마지막 product에 도달했다면, 추가 product를 로드
+        guard let lastProduct = platziStore.products.last,
+              lastProduct.id == currentProduct.id,
+              lastLoadedProductId != lastProduct.id // 더이상 로드할 product가 없다면, 추가 로드 불필요
+        else {
+            return
+        }
+
+        lastLoadedProductId = lastProduct.id
+        currentPage += 1
+
+        do {
+            try await platziStore.loadProducts(page: currentPage, limit: limit)
+        } catch {
+            // TODO: 벼로 에러처리 고려 필요
+            print(error.localizedDescription)
+        }
+    }
+
+    var body: some View {
+        List(platziStore.products) { product in
+            VStack(alignment: .leading) {
+                Text("\(product.id)")
+                    .padding()
+                    .background(.green)
+                Text(product.title)
+                Text(product.description)
+                    .opacity(0.5)
+            }
+            .task {
+                // 스크롤로 마지막 product 노출 시 호출
+                await loadMoreIfNeeded(currentProduct: product)
+            }
+        }
+        .task {
+            do {
+                // List 노출 시 1회 호출
+                try await platziStore.loadProducts()
+            } catch {
+                print(error.localizedDescription)
+            }
+        }
+    }
+}
+
+#Preview {
+    ProductListScreen()
+        .environment(PlatziStore(httpClient: HTTPClient()))
+}
+```
+
+
 ### 7. Build a Modern Onboarding Flow in SwiftUI with Enums and Data Binding
 
 - SwiftUI 기반의 Onboarding flow 구현하기
