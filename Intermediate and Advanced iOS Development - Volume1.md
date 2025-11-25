@@ -1,10 +1,19 @@
-## Intermediate and Advanced iOS Development - Volume1
+# Intermediate and Advanced iOS Development - Volume1
 
-### 12. Build a Debounce View Modifier in SwiftUI Without Combine (Async/Await Approach)
+## 12. Build a Debounce View Modifier in SwiftUI Without Combine (Async/Await Approach)
 
-### 11. Fix Slow iOS Apps: Find Network Bottlenecks with Instruments + Caching
+## 11. Fix Slow iOS Apps: Find Network Bottlenecks with Instruments + Caching
 
-### 10. How to Cache Images in Swift with NSCache and Async/Await
+### 앱 네트워킹 간에 병목현상(bottle neck)을 확인하는 방법
+- instruments에서 다양한 도구를 사용할 수 있다.
+- Instruments 도구 중 Network를 사용 -> 좌상단 빨강원 버튼 클릭
+  - 많은 네트워킹이 발생하면 Network 도구 그래프 내 스파이크가 발생 -> 네트워크 트래픽이 발생했다는 뜻
+  - 스파이크 발생 위치를 드래그 하면, 해당 위치에서 발생한 http, 실행 코드 관련 네트워킹 로그를 확인 가능
+  - 이미지 요청을 하는 경우, 스파이크 최소화를 위해 이미지 캐싱을 고려할 수 있음
+    - ex) KingFisher, Nuke(Image Loading System), SDWebImage, NSCache 사용한 자체 캐싱로직 구현 등...
+      - Nuke library를 사용해서 LukeUI import, SwiftUI 기반 UI 구성 시 LazyImage를 사용 가능 -> 이미지 캐싱 로직이 반영되면, 이미 요청한 이미지는 재요청하지 않으므로, 이미지 최초 로드 이후의 스파이크 발생을 최소화 할 수 있다.
+
+## 10. How to Cache Images in Swift with NSCache and Async/Await
 
 - SwiftUI 에서 기본 제공하는 AsyncImage View는 자체 캐싱 기능이 없으므로, 캐싱이 필요하다면 별도 구현이 필요함
 - Caching 로직이 있는 ImageLoader 기반으로 동작하는 URLImage View 구현
@@ -104,7 +113,7 @@ struct ImageLoader {
 
 
 
-### 9. How to implement infinite Scrolling in SwiftUI with Real API Data
+## 9. How to implement infinite Scrolling in SwiftUI with Real API Data
 
 - Infinite Scrolling : 스크롤할때 추가적으로 계속 데이터를 불러서 리스트를 보여주는 것
 - environmentObject로 Store를 주입하는 방식으로 Screen 생성
@@ -239,7 +248,7 @@ struct ProductListScreen: View {
 ```
 
 
-### 7. Build a Modern Onboarding Flow in SwiftUI with Enums and Data Binding
+## 7. Build a Modern Onboarding Flow in SwiftUI with Enums and Data Binding
 
 - SwiftUI 기반의 Onboarding flow 구현하기
 
@@ -396,9 +405,9 @@ struct OnboardingRootView: View {
 
 
 
-### 6. Building the Car Price Prediction Model
+## 6. Building the Car Price Prediction Model
 
-### 5. Speed Up Xcode Previews with MockHTTPClient in SwiftUI
+## 5. Speed Up Xcode Previews with MockHTTPClient in SwiftUI
 
 ```swift
 // 아래 프로토콜을 실제 Client, mock Client에서 채택해서 사용
@@ -444,7 +453,7 @@ struct Resource<T: Codable> {
 
 
 
-### 4. Managing Loading States in SwiftUI App
+## 4. Managing Loading States in SwiftUI App
 
 ```swift
 import SwiftUI
@@ -530,13 +539,11 @@ struct ContentView: View {
 
 
 
-
-
-### 3. Bring Reactivity to UIKit with @Observable
+## 3. Bring Reactivity to UIKit with @Observable
 
 SwiftUI를 import 후, #Preview { ... } 매크로로 UIViewController 화면 preview 기능을 사용 가능
 
-```swift
+``` swift
 import Observation
 
 // @Observable class 를 UIKit 에서도 사용 가능
