@@ -2,6 +2,115 @@
 
 ## 12. Build a Debounce View Modifier in SwiftUI Without Combine (Async/Await Approach)
 
+### SwiftUI 에서의 DebounceViewModifier 구현 및 사용 예시
+- Debounce는 특정 interval 동안 이벤트가 발생하지 않을 경우 트리거되는 이벤트이다. 불필요한 중간 이벤트를 무시하고자할때 사용
+  - Combine framework 내에서도 debounce operator 제공
+  - 입력한 텍스트에 대한 자동 검색 등에 꼭 필요한 시점에서 네트워킹 요청을 원할때 활용
+
+```swift
+import SwiftUI
+
+extension String {
+    var isEmptyOrWhiteSpace: Bool {
+        return self.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
+struct DebounceModifier: ViewModifier {
+    let text: String
+    let delay: Duration
+    let minimumLength: Int
+    let action: () async -> Void
+
+    @State private var isLoading = false
+
+    private var isValid: Bool {
+        !text.isEmptyOrWhiteSpace && text.count >= minimumLength
+    }
+
+    func body(content: Content) -> some View {
+        ZStack {
+            content
+                .task(id: text) { // text가 변경되면, 이전 task 작업은 취소되고 새로운 task 실행하며 debounce 기능을 수행
+                    guard isValid else { return }
+
+                    try? await Task.sleep(for: delay)
+                    guard !Task.isCancelled else { return }
+                    // Task 가 취소되지 않았을 경우, 아래 동작을 수행
+                    // 네트워킹을 했다고 가정하고 isLoading 제어 및 action 수행
+                    await MainActor.run { isLoading = true }
+                    await action()
+                    await MainActor.run { isLoading = false }
+                }
+
+            if isLoading {
+                // action 동작이 실행 후, 끝날때까지 표시
+                LoadingOverlay()
+            }
+        }
+    }
+
+    private struct LoadingOverlay: View {
+        var body: some View {
+            HStack(spacing: 8) {
+                ProgressView()
+                Text("Loading...")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 20)
+            .background(.ultraThinMaterial)
+            .cornerRadius(12)
+            .shadow(radius: 4)
+        }
+    }
+}
+
+extension View {
+    // debounce view modifier 구현
+    func debounce(
+        text: String,
+        delay: Duration = .seconds(2), // N초간 새로운 텍스트 변경 없으면 action 실행
+        minimumLength: Int = 4, // action 실행을 위한 최소 글자 조건
+        action: @escaping () async -> Void // 실행할 action
+    ) -> some View {
+        self.modifier(
+            DebounceModifier(
+                text: text,
+                delay: delay,
+                minimumLength: minimumLength,
+                action: action
+            )
+        )
+    }
+}
+
+struct ContentView: View {
+    @State private var search: String = ""
+
+    private func performTask() async {
+        print("perform the task!!!")
+        try? await Task.sleep(for: .seconds(2.0))
+    }
+
+    var body: some View {
+        Form {
+            TextField("Search", text: $search)
+        }
+        .debounce(text: search) {
+            await performTask()
+        }
+    }
+}
+
+#Preview {
+    ContentView()
+}
+```
+
+
+
 ## 11. Fix Slow iOS Apps: Find Network Bottlenecks with Instruments + Caching
 
 ### 앱 네트워킹 간에 병목현상(bottle neck)을 확인하는 방법
